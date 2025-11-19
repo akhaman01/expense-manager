@@ -521,6 +521,16 @@
   background: #ff3742;
 }
 
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+  font-size: 1.2rem;
+  color: white;
+  text-align: center;
+}
+
 @media (max-width: 768px) {
   .form {
     grid-template-columns: 1fr;

@@ -1,0 +1,13 @@
+@echo off
+echo Starting Expense Manager...
+echo.
+echo Starting backend server...
+start "Backend Server" cmd /k "node server.js"
+timeout /t 3 /nobreak > nul
+echo Starting React app...
+start "React App" cmd /k "npm run dev"
+echo.
+echo Both services are starting...
+echo Backend: http://localhost:3001
+echo Frontend: http://localhost:5173
+pause

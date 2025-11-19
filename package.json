@@ -7,9 +7,13 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "server": "node server.js",
+    "start": "echo Please run 'npm run server' in one terminal and 'npm run dev' in another, or use start.bat"
   },
   "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

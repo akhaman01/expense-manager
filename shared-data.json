@@ -1,0 +1,29 @@
+{
+  "expenses": [
+    {
+      "id": 1763568652929,
+      "name": "Mix Veg",
+      "amount": 170,
+      "category": "daily",
+      "purchasedBy": "Mohd Usman",
+      "date": "2025-11-19",
+      "month": "2025-11"
+    },
+    {
+      "id": 1763568929490,
+      "name": "Oil",
+      "amount": 150,
+      "category": "daily",
+      "purchasedBy": "Amaan Akhtar",
+      "date": "2025-11-19",
+      "month": "2025-11"
+    }
+  ],
+  "people": [
+    "Amaan Akhtar",
+    "Tabrej Alam",
+    "Mohd Ehtisham",
+    "Mohd Usman",
+    "Mohd Najam"
+  ]
+}

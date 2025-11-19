@@ -1,18 +1,15 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 
+const API_BASE = 'http://localhost:3001/api'
+
 function App() {
-  const [expenses, setExpenses] = useState(() => {
-    const saved = localStorage.getItem('expenses')
-    return saved ? JSON.parse(saved) : []
-  })
+  const [expenses, setExpenses] = useState([])
   const [newExpense, setNewExpense] = useState({ name: '', amount: '', category: 'fixed', purchasedBy: '' })
   const [currentMonth, setCurrentMonth] = useState(new Date().toISOString().slice(0, 7))
   const [newPersonName, setNewPersonName] = useState('')
-  const [people, setPeople] = useState(() => {
-    const saved = localStorage.getItem('people')
-    return saved ? JSON.parse(saved) : ['Amaan Akhtar', 'Tabrej Alam', 'Mohd Ehtisham', 'Mohd Usman', 'Mohd Najam']
-  })
+  const [people, setPeople] = useState([])
+  const [loading, setLoading] = useState(true)
 
   const expenseCategories = {
     fixed: ['Room Rent', 'Electricity Bill', 'Maid Salary', 'Internet', 'Gas'],
@@ -22,14 +19,29 @@ function App() {
 
 
   useEffect(() => {
-    localStorage.setItem('expenses', JSON.stringify(expenses))
-  }, [expenses])
+    fetchData()
+  }, [])
 
-  useEffect(() => {
-    localStorage.setItem('people', JSON.stringify(people))
-  }, [people])
+  const fetchData = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/data`)
+      if (!response.ok) throw new Error('Server not available')
+      const data = await response.json()
+      setExpenses(data.expenses || [])
+      setPeople(data.people || [])
+    } catch (error) {
+      console.error('Failed to fetch data from server, using localStorage:', error)
+      // Fallback to localStorage if server is not available
+      const savedExpenses = localStorage.getItem('expenses')
+      const savedPeople = localStorage.getItem('people')
+      setExpenses(savedExpenses ? JSON.parse(savedExpenses) : [])
+      setPeople(savedPeople ? JSON.parse(savedPeople) : ['Amaan Akhtar', 'Tabrej Alam', 'Mohd Ehtisham', 'Mohd Usman', 'Mohd Najam'])
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  const addExpense = () => {
+  const addExpense = async () => {
     if (newExpense.name && newExpense.amount) {
       const expense = {
         id: Date.now(),
@@ -38,24 +50,78 @@ function App() {
         date: new Date().toISOString().split('T')[0],
         month: currentMonth
       }
-      setExpenses([...expenses, expense])
+      try {
+        const response = await fetch(`${API_BASE}/expenses`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(expense)
+        })
+        if (!response.ok) throw new Error('Server not available')
+        const savedExpense = await response.json()
+        setExpenses([...expenses, savedExpense])
+      } catch (error) {
+        console.error('Failed to add expense to server, using localStorage:', error)
+        // Fallback to localStorage
+        const updatedExpenses = [...expenses, expense]
+        setExpenses(updatedExpenses)
+        localStorage.setItem('expenses', JSON.stringify(updatedExpenses))
+      }
       setNewExpense({ name: '', amount: '', category: 'fixed', purchasedBy: '' })
     }
   }
 
-  const addPerson = () => {
+  const addPerson = async () => {
     if (newPersonName.trim() && !people.includes(newPersonName.trim())) {
-      setPeople([...people, newPersonName.trim()])
+      try {
+        const response = await fetch(`${API_BASE}/people`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newPersonName.trim() })
+        })
+        if (!response.ok) throw new Error('Server not available')
+        const updatedPeople = await response.json()
+        setPeople(updatedPeople)
+      } catch (error) {
+        console.error('Failed to add person to server, using localStorage:', error)
+        // Fallback to localStorage
+        const updatedPeople = [...people, newPersonName.trim()]
+        setPeople(updatedPeople)
+        localStorage.setItem('people', JSON.stringify(updatedPeople))
+      }
       setNewPersonName('')
     }
   }
 
-  const removePerson = (personToRemove) => {
-    setPeople(people.filter(person => person !== personToRemove))
+  const removePerson = async (personToRemove) => {
+    try {
+      const response = await fetch(`${API_BASE}/people/${encodeURIComponent(personToRemove)}`, {
+        method: 'DELETE'
+      })
+      if (!response.ok) throw new Error('Server not available')
+      const updatedPeople = await response.json()
+      setPeople(updatedPeople)
+    } catch (error) {
+      console.error('Failed to remove person from server, using localStorage:', error)
+      // Fallback to localStorage
+      const updatedPeople = people.filter(person => person !== personToRemove)
+      setPeople(updatedPeople)
+      localStorage.setItem('people', JSON.stringify(updatedPeople))
+    }
   }
 
-  const deleteExpense = (id) => {
-    setExpenses(expenses.filter(exp => exp.id !== id))
+  const deleteExpense = async (id) => {
+    try {
+      const response = await fetch(`${API_BASE}/expenses/${id}`, { method: 'DELETE' })
+      if (!response.ok) throw new Error('Server not available')
+      const updatedExpenses = expenses.filter(exp => exp.id !== id)
+      setExpenses(updatedExpenses)
+    } catch (error) {
+      console.error('Failed to delete expense from server, using localStorage:', error)
+      // Fallback to localStorage
+      const updatedExpenses = expenses.filter(exp => exp.id !== id)
+      setExpenses(updatedExpenses)
+      localStorage.setItem('expenses', JSON.stringify(updatedExpenses))
+    }
   }
 
   const getCurrentMonthExpenses = () => {
@@ -120,6 +186,10 @@ function App() {
   const grandTotal = getTotalExpenses()
   const personSpending = getPersonSpending()
   const settlementData = getSettlementCalculation()
+
+  if (loading) {
+    return <div className="app"><div className="loading">Loading shared expenses...</div></div>
+  }
 
   return (
     <div className="app">
