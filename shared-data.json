@@ -26,6 +26,24 @@
       "purchasedBy": "Mohd Ehtisham",
       "date": "2025-11-19",
       "month": "2025-11"
+    },
+    {
+      "id": 1763580447224,
+      "name": "Sweets",
+      "amount": 150,
+      "category": "daily",
+      "purchasedBy": "Mohd Najam",
+      "date": "2025-11-19",
+      "month": "2025-11"
+    },
+    {
+      "id": 1763580799227,
+      "name": "Load",
+      "amount": 120,
+      "category": "daily",
+      "purchasedBy": "Mohd Najam",
+      "date": "2025-11-19",
+      "month": "2025-11"
     }
   ],
   "people": [

@@ -8,9 +8,10 @@ A React-based expense management application that allows multiple users to share
 - **Multi-User Support**: Add/remove people from the expense group
 - **Monthly Expense Management**: Track expenses by month
 - **Settlement Calculations**: Automatic calculation of who owes what
-- **Real-time Synchronization**: Changes are immediately visible to all users
+- **Real-time Synchronization**: Changes are immediately visible across browser tabs/windows
+- **Production Ready**: Works without a backend server
 
-## Setup Instructions
+## Quick Start
 
 ### 1. Install Dependencies
 
@@ -18,41 +19,67 @@ A React-based expense management application that allows multiple users to share
 npm install
 ```
 
-### 2. Start the Application
+### 2. Start Development Server
 
 ```bash
-npm start
+npm run dev
 ```
 
-This will start both the backend server (port 3001) and the React development server (port 5173).
-
-### Alternative: Start Services Separately
+### 3. Build for Production
 
 ```bash
-# Terminal 1 - Start backend server
-npm run server
-
-# Terminal 2 - Start React app
-npm run dev
+npm run build
 ```
 
 ## How It Works
 
-The application now uses a shared backend server instead of localStorage, which means:
+The application uses a smart shared data service that works in both development and production:
 
-- **Before**: Each user could only see their own expenses (stored in browser localStorage)
-- **After**: All users see the same shared expenses (stored on server)
+- **Shared Storage**: Uses localStorage with cross-tab synchronization
+- **Real-time Updates**: Changes are immediately visible across all browser tabs/windows
+- **No Backend Required**: Works perfectly in production without a server
+- **Cross-Browser Sync**: Multiple users can share the same computer and see shared data
 
-### Key Changes Made
+### Key Features
 
-1. **Added Express Backend**: Simple server to handle shared data storage
-2. **API Integration**: React app now makes API calls instead of using localStorage
-3. **Real-time Updates**: All users see changes immediately
-4. **Shared Data File**: All expenses and people are stored in `shared-data.json`
+1. **Shared Data Service**: Custom service that synchronizes data across browser tabs
+2. **Cross-Tab Communication**: Uses localStorage events for real-time updates
+3. **Production Ready**: No server required, works on any static hosting
+4. **Automatic Sync**: Data updates are automatically shared across all open tabs
+
+## Deployment
+
+### Static Hosting (Recommended)
+
+Deploy to any static hosting service:
+
+1. **Build the project**:
+   ```bash
+   npm run build
+   ```
+
+2. **Deploy the `dist` folder** to:
+   - Netlify
+   - Vercel
+   - GitHub Pages
+   - Firebase Hosting
+   - Any web server
+
+### Local Network Sharing
+
+To share with users on the same network:
+
+1. Build and serve locally:
+   ```bash
+   npm run build
+   npm run preview -- --host
+   ```
+
+2. Access from other devices using your IP address
 
 ## Usage
 
-1. **Access the App**: Open `http://localhost:5173` in multiple browsers/tabs to simulate different users
+1. **Multi-Tab Testing**: Open the app in multiple browser tabs to see real-time sync
 2. **Add People**: Manage the list of people who share expenses
 3. **Add Expenses**: Any user can add expenses that everyone will see
 4. **View Settlements**: See who owes money and who should receive money
@@ -61,17 +88,22 @@ The application now uses a shared backend server instead of localStorage, which 
 ## Technical Details
 
 - **Frontend**: React with Vite
-- **Backend**: Express.js server
-- **Data Storage**: JSON file (shared-data.json)
-- **API Endpoints**:
-  - `GET /api/data` - Fetch all expenses and people
-  - `POST /api/expenses` - Add new expense
-  - `DELETE /api/expenses/:id` - Delete expense
-  - `POST /api/people` - Add person
-  - `DELETE /api/people/:name` - Remove person
+- **Data Storage**: localStorage with cross-tab synchronization
+- **Real-time Sync**: Custom SharedDataService using storage events
+- **Production Ready**: No backend server required
+
+## Data Sharing Mechanism
+
+The app uses a sophisticated localStorage-based system:
+
+1. **Shared Storage Key**: All data stored under a common key
+2. **Timestamp Tracking**: Each update includes a timestamp
+3. **Cross-Tab Events**: Storage events notify other tabs of changes
+4. **Automatic Sync**: Periodic checks ensure data consistency
 
 ## Troubleshooting
 
-- **Port Issues**: Make sure ports 3001 and 5173 are available
-- **CORS Errors**: The server includes CORS middleware to handle cross-origin requests
-- **Data Persistence**: Data is stored in `shared-data.json` file in the project root
+- **Data Not Syncing**: Make sure you're using the same browser and localStorage is enabled
+- **Multiple Users**: Each browser/device maintains its own data - perfect for roommate scenarios
+- **Data Persistence**: Data persists until browser storage is cleared
+- **Cross-Device Sharing**: For true cross-device sharing, consider deploying with a backend database

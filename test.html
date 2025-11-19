@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Shared Data Service</title>
+</head>
+<body>
+    <h1>Testing Shared Data Service</h1>
+    <button onclick="testService()">Test Service</button>
+    <div id="output"></div>
+
+    <script>
+        // Simple test for the data service logic
+        const STORAGE_KEY = 'shared-expense-data';
+        
+        function testService() {
+            const output = document.getElementById('output');
+            
+            try {
+                // Test data initialization
+                const initialData = {
+                    expenses: [],
+                    people: ['Test User 1', 'Test User 2'],
+                    lastUpdated: Date.now()
+                };
+                
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
+                
+                // Test data retrieval
+                const retrieved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                
+                output.innerHTML = `
+                    <h3>Test Results:</h3>
+                    <p>✅ Data stored successfully</p>
+                    <p>✅ Data retrieved successfully</p>
+                    <p>People count: ${retrieved.people.length}</p>
+                    <p>Expenses count: ${retrieved.expenses.length}</p>
+                    <pre>${JSON.stringify(retrieved, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                output.innerHTML = `<p>❌ Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

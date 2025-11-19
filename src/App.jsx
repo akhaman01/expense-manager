@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-
-const API_BASE = 'http://localhost:3001/api'
+import sharedDataService from './dataService'
 
 function App() {
   const [expenses, setExpenses] = useState([])
@@ -19,108 +18,86 @@ function App() {
 
 
   useEffect(() => {
-    fetchData()
+    let dataHandler = null;
+    
+    const initializeData = () => {
+      try {
+        const data = sharedDataService.init()
+        setExpenses(data.expenses || [])
+        setPeople(data.people || [])
+        
+        // Listen for data changes from other tabs/windows
+        const handleDataUpdate = (event) => {
+          if (event.detail && typeof event.detail === 'object') {
+            const updatedData = event.detail
+            setExpenses(updatedData.expenses || [])
+            setPeople(updatedData.people || [])
+          }
+        }
+        
+        dataHandler = sharedDataService.onDataChange(handleDataUpdate)
+      } catch (error) {
+        console.error('Failed to initialize shared data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    initializeData()
+    
+    return () => {
+      sharedDataService.stopSync()
+      if (dataHandler) {
+        sharedDataService.offDataChange(dataHandler)
+      }
+    }
   }, [])
 
-  const fetchData = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/data`)
-      if (!response.ok) throw new Error('Server not available')
-      const data = await response.json()
-      setExpenses(data.expenses || [])
-      setPeople(data.people || [])
-    } catch (error) {
-      console.error('Failed to fetch data from server, using localStorage:', error)
-      // Fallback to localStorage if server is not available
-      const savedExpenses = localStorage.getItem('expenses')
-      const savedPeople = localStorage.getItem('people')
-      setExpenses(savedExpenses ? JSON.parse(savedExpenses) : [])
-      setPeople(savedPeople ? JSON.parse(savedPeople) : ['Amaan Akhtar', 'Tabrej Alam', 'Mohd Ehtisham', 'Mohd Usman', 'Mohd Najam'])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const addExpense = async () => {
+  const addExpense = () => {
     if (newExpense.name && newExpense.amount) {
       const expense = {
-        id: Date.now(),
         ...newExpense,
         amount: parseFloat(newExpense.amount),
         date: new Date().toISOString().split('T')[0],
         month: currentMonth
       }
       try {
-        const response = await fetch(`${API_BASE}/expenses`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(expense)
-        })
-        if (!response.ok) throw new Error('Server not available')
-        const savedExpense = await response.json()
+        const savedExpense = sharedDataService.addExpense(expense)
         setExpenses([...expenses, savedExpense])
+        setNewExpense({ name: '', amount: '', category: 'fixed', purchasedBy: '' })
       } catch (error) {
-        console.error('Failed to add expense to server, using localStorage:', error)
-        // Fallback to localStorage
-        const updatedExpenses = [...expenses, expense]
-        setExpenses(updatedExpenses)
-        localStorage.setItem('expenses', JSON.stringify(updatedExpenses))
+        console.error('Failed to add expense:', error)
       }
-      setNewExpense({ name: '', amount: '', category: 'fixed', purchasedBy: '' })
     }
   }
 
-  const addPerson = async () => {
+  const addPerson = () => {
     if (newPersonName.trim() && !people.includes(newPersonName.trim())) {
       try {
-        const response = await fetch(`${API_BASE}/people`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: newPersonName.trim() })
-        })
-        if (!response.ok) throw new Error('Server not available')
-        const updatedPeople = await response.json()
+        const updatedPeople = sharedDataService.addPerson(newPersonName.trim())
         setPeople(updatedPeople)
+        setNewPersonName('')
       } catch (error) {
-        console.error('Failed to add person to server, using localStorage:', error)
-        // Fallback to localStorage
-        const updatedPeople = [...people, newPersonName.trim()]
-        setPeople(updatedPeople)
-        localStorage.setItem('people', JSON.stringify(updatedPeople))
+        console.error('Failed to add person:', error)
       }
-      setNewPersonName('')
     }
   }
 
-  const removePerson = async (personToRemove) => {
+  const removePerson = (personToRemove) => {
     try {
-      const response = await fetch(`${API_BASE}/people/${encodeURIComponent(personToRemove)}`, {
-        method: 'DELETE'
-      })
-      if (!response.ok) throw new Error('Server not available')
-      const updatedPeople = await response.json()
+      const updatedPeople = sharedDataService.removePerson(personToRemove)
       setPeople(updatedPeople)
     } catch (error) {
-      console.error('Failed to remove person from server, using localStorage:', error)
-      // Fallback to localStorage
-      const updatedPeople = people.filter(person => person !== personToRemove)
-      setPeople(updatedPeople)
-      localStorage.setItem('people', JSON.stringify(updatedPeople))
+      console.error('Failed to remove person:', error)
     }
   }
 
-  const deleteExpense = async (id) => {
+  const deleteExpense = (id) => {
     try {
-      const response = await fetch(`${API_BASE}/expenses/${id}`, { method: 'DELETE' })
-      if (!response.ok) throw new Error('Server not available')
-      const updatedExpenses = expenses.filter(exp => exp.id !== id)
-      setExpenses(updatedExpenses)
+      sharedDataService.deleteExpense(id)
+      setExpenses(expenses.filter(exp => exp.id !== id))
     } catch (error) {
-      console.error('Failed to delete expense from server, using localStorage:', error)
-      // Fallback to localStorage
-      const updatedExpenses = expenses.filter(exp => exp.id !== id)
-      setExpenses(updatedExpenses)
-      localStorage.setItem('expenses', JSON.stringify(updatedExpenses))
+      console.error('Failed to delete expense:', error)
     }
   }
 
