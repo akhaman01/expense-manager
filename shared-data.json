@@ -17,6 +17,15 @@
       "purchasedBy": "Amaan Akhtar",
       "date": "2025-11-19",
       "month": "2025-11"
+    },
+    {
+      "id": 1763579532086,
+      "name": "Chicken",
+      "amount": 410,
+      "category": "daily",
+      "purchasedBy": "Mohd Ehtisham",
+      "date": "2025-11-19",
+      "month": "2025-11"
     }
   ],
   "people": [
