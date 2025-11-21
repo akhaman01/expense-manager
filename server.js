@@ -1,11 +1,6 @@
 import express from 'express';
-import fs from 'fs';
-import path from 'path';
 import cors from 'cors';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import dbService from './src/dbService.js';
 
 const app = express();
 const PORT = 3001;
@@ -13,34 +8,26 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
-const DATA_FILE = path.join(__dirname, 'shared-data.json');
-
-// Initialize data file if it doesn't exist
-if (!fs.existsSync(DATA_FILE)) {
-  const initialData = {
-    expenses: [],
-    people: ['Amaan Akhtar', 'Tabrej Alam', 'Mohd Ehtisham', 'Mohd Usman', 'Mohd Najam']
-  };
-  fs.writeFileSync(DATA_FILE, JSON.stringify(initialData, null, 2));
-}
+// Initialize database connection
+await dbService.connect();
 
 // Get all data
-app.get('/api/data', (req, res) => {
+app.get('/api/data/:roomId', async (req, res) => {
   try {
-    const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-    res.json(data);
+    const { roomId } = req.params;
+    const expenses = await dbService.getExpenses(roomId);
+    const people = await dbService.getPeople(roomId);
+    res.json({ expenses, people });
   } catch (error) {
     res.status(500).json({ error: 'Failed to read data' });
   }
 });
 
 // Add expense
-app.post('/api/expenses', (req, res) => {
+app.post('/api/expenses/:roomId', async (req, res) => {
   try {
-    const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-    const newExpense = { ...req.body, id: Date.now() };
-    data.expenses.push(newExpense);
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+    const { roomId } = req.params;
+    const newExpense = await dbService.addExpense(req.body, roomId);
     res.json(newExpense);
   } catch (error) {
     res.status(500).json({ error: 'Failed to add expense' });
@@ -48,11 +35,9 @@ app.post('/api/expenses', (req, res) => {
 });
 
 // Delete expense
-app.delete('/api/expenses/:id', (req, res) => {
+app.delete('/api/expenses/:id', async (req, res) => {
   try {
-    const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-    data.expenses = data.expenses.filter(exp => exp.id !== parseInt(req.params.id));
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+    await dbService.deleteExpense(req.params.id);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete expense' });
@@ -60,27 +45,25 @@ app.delete('/api/expenses/:id', (req, res) => {
 });
 
 // Add person
-app.post('/api/people', (req, res) => {
+app.post('/api/people/:roomId', async (req, res) => {
   try {
-    const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    const { roomId } = req.params;
     const { name } = req.body;
-    if (!data.people.includes(name)) {
-      data.people.push(name);
-      fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-    }
-    res.json(data.people);
+    await dbService.addPerson(name, roomId);
+    const people = await dbService.getPeople(roomId);
+    res.json(people);
   } catch (error) {
     res.status(500).json({ error: 'Failed to add person' });
   }
 });
 
 // Remove person
-app.delete('/api/people/:name', (req, res) => {
+app.delete('/api/people/:roomId/:name', async (req, res) => {
   try {
-    const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-    data.people = data.people.filter(person => person !== req.params.name);
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-    res.json(data.people);
+    const { roomId, name } = req.params;
+    await dbService.removePerson(name, roomId);
+    const people = await dbService.getPeople(roomId);
+    res.json(people);
   } catch (error) {
     res.status(500).json({ error: 'Failed to remove person' });
   }

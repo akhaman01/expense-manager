@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 import sharedDataService from './dataService'
+import firebaseService from './firebaseService'
 
 function App() {
   const [expenses, setExpenses] = useState([])
@@ -9,6 +10,8 @@ function App() {
   const [newPersonName, setNewPersonName] = useState('')
   const [people, setPeople] = useState([])
   const [loading, setLoading] = useState(true)
+  const [useFirebase, setUseFirebase] = useState(false)
+  const [roomId, setRoomId] = useState('')
 
   const expenseCategories = {
     fixed: ['Room Rent', 'Electricity Bill', 'Maid Salary', 'Internet', 'Gas'],
@@ -20,24 +23,35 @@ function App() {
   useEffect(() => {
     let dataHandler = null;
     
-    const initializeData = () => {
+    const initializeData = async () => {
       try {
-        const data = sharedDataService.init()
-        setExpenses(data.expenses || [])
-        setPeople(data.people || [])
-        
-        // Listen for data changes from other tabs/windows
-        const handleDataUpdate = (event) => {
-          if (event.detail && typeof event.detail === 'object') {
-            const updatedData = event.detail
-            setExpenses(updatedData.expenses || [])
-            setPeople(updatedData.people || [])
+        if (useFirebase) {
+          const data = await firebaseService.getData()
+          setExpenses(Object.values(data.expenses || {}))
+          setPeople(data.people || [])
+          setRoomId(firebaseService.getRoomId())
+          
+          dataHandler = firebaseService.onDataChange((data) => {
+            setExpenses(Object.values(data.expenses || {}))
+            setPeople(data.people || [])
+          })
+        } else {
+          const data = sharedDataService.init()
+          setExpenses(data.expenses || [])
+          setPeople(data.people || [])
+          
+          const handleDataUpdate = (event) => {
+            if (event.detail && typeof event.detail === 'object') {
+              const updatedData = event.detail
+              setExpenses(updatedData.expenses || [])
+              setPeople(updatedData.people || [])
+            }
           }
+          
+          dataHandler = sharedDataService.onDataChange(handleDataUpdate)
         }
-        
-        dataHandler = sharedDataService.onDataChange(handleDataUpdate)
       } catch (error) {
-        console.error('Failed to initialize shared data:', error)
+        console.error('Failed to initialize data:', error)
       } finally {
         setLoading(false)
       }
@@ -53,7 +67,7 @@ function App() {
     }
   }, [])
 
-  const addExpense = () => {
+  const addExpense = async () => {
     if (newExpense.name && newExpense.amount) {
       const expense = {
         ...newExpense,
@@ -62,8 +76,12 @@ function App() {
         month: currentMonth
       }
       try {
-        const savedExpense = sharedDataService.addExpense(expense)
-        setExpenses([...expenses, savedExpense])
+        if (useFirebase) {
+          await firebaseService.addExpense(expense)
+        } else {
+          const savedExpense = sharedDataService.addExpense(expense)
+          setExpenses([...expenses, savedExpense])
+        }
         setNewExpense({ name: '', amount: '', category: 'fixed', purchasedBy: '' })
       } catch (error) {
         console.error('Failed to add expense:', error)
@@ -71,11 +89,16 @@ function App() {
     }
   }
 
-  const addPerson = () => {
+  const addPerson = async () => {
     if (newPersonName.trim() && !people.includes(newPersonName.trim())) {
       try {
-        const updatedPeople = sharedDataService.addPerson(newPersonName.trim())
-        setPeople(updatedPeople)
+        const updatedPeople = [...people, newPersonName.trim()]
+        if (useFirebase) {
+          await firebaseService.updatePeople(updatedPeople)
+        } else {
+          sharedDataService.addPerson(newPersonName.trim())
+          setPeople(updatedPeople)
+        }
         setNewPersonName('')
       } catch (error) {
         console.error('Failed to add person:', error)
@@ -83,19 +106,28 @@ function App() {
     }
   }
 
-  const removePerson = (personToRemove) => {
+  const removePerson = async (personToRemove) => {
     try {
-      const updatedPeople = sharedDataService.removePerson(personToRemove)
-      setPeople(updatedPeople)
+      const updatedPeople = people.filter(person => person !== personToRemove)
+      if (useFirebase) {
+        await firebaseService.updatePeople(updatedPeople)
+      } else {
+        sharedDataService.removePerson(personToRemove)
+        setPeople(updatedPeople)
+      }
     } catch (error) {
       console.error('Failed to remove person:', error)
     }
   }
 
-  const deleteExpense = (id) => {
+  const deleteExpense = async (id) => {
     try {
-      sharedDataService.deleteExpense(id)
-      setExpenses(expenses.filter(exp => exp.id !== id))
+      if (useFirebase) {
+        await firebaseService.deleteExpense(id)
+      } else {
+        sharedDataService.deleteExpense(id)
+        setExpenses(expenses.filter(exp => exp.id !== id))
+      }
     } catch (error) {
       console.error('Failed to delete expense:', error)
     }
@@ -172,13 +204,26 @@ function App() {
     <div className="app">
       <header className="header">
         <h1>🏠 Room Expense Manager</h1>
-        <div className="month-selector">
-          <label>Month: </label>
-          <input 
-            type="month" 
-            value={currentMonth}
-            onChange={(e) => setCurrentMonth(e.target.value)}
-          />
+        <div className="controls">
+          <div className="month-selector">
+            <label>Month: </label>
+            <input 
+              type="month" 
+              value={currentMonth}
+              onChange={(e) => setCurrentMonth(e.target.value)}
+            />
+          </div>
+          <div className="sharing-toggle">
+            <label>
+              <input 
+                type="checkbox" 
+                checked={useFirebase}
+                onChange={(e) => setUseFirebase(e.target.checked)}
+              />
+              Cross-Device Sharing
+            </label>
+            {useFirebase && <span className="room-id">Room: {roomId}</span>}
+          </div>
         </div>
       </header>
 
